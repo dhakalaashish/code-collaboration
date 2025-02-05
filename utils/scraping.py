@@ -5,8 +5,13 @@ import json
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+
 load_dotenv()
+issues_per_page = 100
+start_page = 61
+current_batch = 7
+
+print('Started Scraping')
 
 def save_to_json(data, batch_number):
     """Save data to a JSON file for specific batch"""
@@ -36,6 +41,13 @@ def fetch_additional_data(issue, headers):
         comments_response = requests.get(issue['comments_url'], headers=headers, timeout=10)
         comments_response.raise_for_status()
         issue['comments_url_body'] = comments_response.json()
+        # Check rate limit
+        remaining = int(comments_response.headers.get('X-RateLimit-Remaining', 0))
+        if remaining < 1:
+            reset_time = int(comments_response.headers.get('X-RateLimit-Reset', 0))
+            sleep_time = max(reset_time - time.time(), 0)
+            print(f"Rate limit reached. Waiting {sleep_time} seconds...")
+            sleep(sleep_time)
     except requests.exceptions.RequestException as e:
         print(f"Error fetching comments for #{issue['number']}: {e}")
         issue['comments_url_body'] = []
@@ -46,8 +58,8 @@ url = "https://api.github.com/repos/jax-ml/jax/issues"
 
 params = {
     "state": "closed",
-    "per_page": 100,
-    "page": 1
+    "per_page": issues_per_page,
+    "page": start_page
 }
 
 github_token = os.getenv('GITHUB_AUTH_TOKEN')
@@ -59,10 +71,8 @@ headers = {
     "Authorization": f"Bearer {github_token}"
 }
 
-# Collect all issues
 all_issues = []
 pagesLeft = True
-current_batch = 1
 
 while pagesLeft:
     try:
@@ -87,8 +97,9 @@ while pagesLeft:
             fetch_additional_data(issue, headers)
             
         # Check if we got less than 100 issues
-        if len(data) < 100:
+        if len(data) < issues_per_page:
         # if params["page"] > 22:  #Uncomment for testing
+            print("No pages left in issues")
             pagesLeft = False
             
         # Add the issues to all_issues
@@ -98,7 +109,7 @@ while pagesLeft:
         
         # Save all_issues to json every 10 pages
         if (params["page"]-1) % 10 == 0:
-            print(f"Saving batch {current_batch} (pages {(current_batch-1)*10 + 1}-{(current_batch)*10})...")
+            print(f"Saving batch {current_batch} (pages {(current_batch-1)*10 + 1}-{(current_batch)*10})")
             save_to_json(all_issues, current_batch)
             all_issues = []  # Clear all_issues list after saving
             current_batch += 1
