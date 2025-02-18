@@ -36,6 +36,15 @@ def fetch_issues(repo, headers):
         try:
             response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
+
+            # Handle rate limits
+            remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
+            if remaining < 1:
+                reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
+                sleep_time = max(reset_time - time.time(), 0)
+                print(f"Rate limit reached. Waiting {sleep_time} seconds...")
+                time.sleep(sleep_time)
+
             data = response.json()
             if not data:
                 break
