@@ -44,16 +44,19 @@ def extract_all_links(issue, is_pr):
     strings.append(issue['body'])
 
     # add comments
-    comments = [comment['body'] for comment in issue['comments_url_body']]
-    strings.extend(comments)
+    if 'comments_url_body' in issue:
+        comments = [comment['body'] for comment in issue['comments_url_body']]
+        strings.extend(comments)
     
     # add review comments, commit messages if PR 
     if is_pr:
-        review_comments = [comment['body'] for comment in issue['pull_request_url_body']['review_comments_url_body']]
-        strings.extend(review_comments)
+        if 'pull_request_url_body' in issue and 'review_comments_url_body' in issue['pull_request_url_body']:
+            review_comments = [comment['body'] for comment in issue['pull_request_url_body']['review_comments_url_body']]
+            strings.extend(review_comments)
 
-        commit_message = issue['pull_request_url_body']['commit_message']
-        strings.append(commit_message)
+        if 'pull_request_url_body' in issue and 'commit_message' in issue['pull_request_url_body']:
+            commit_message = issue['pull_request_url_body']['commit_message']
+            strings.append(commit_message)
     
     links_to = extract_links_from_text(strings)
     
