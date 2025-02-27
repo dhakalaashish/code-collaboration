@@ -21,7 +21,7 @@ So far, this repository is a GitHub issue scraper that fetches closed issues and
 ```
 
 ## Requirements
-- Python 3.7+
+- Python 3.12+
 - GitHub personal access token
 
 ## Setup & Installation
