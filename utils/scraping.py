@@ -3,8 +3,8 @@ import json
 import time
 import requests
 from dotenv import load_dotenv
-from utils.helper.link_extractor import extract_all_links
-from utils.helper.repos import repos
+from utils.link_extractor import extract_all_links
+from utils.repos import repos
 
 # Load environment variables
 load_dotenv()

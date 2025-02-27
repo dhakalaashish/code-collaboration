@@ -93,6 +93,7 @@
           "rocket": 0,
           "eyes": 0
         },
+        # "performed_via_github_app": None
       }
     ],
     "pull_request_url_body": {
@@ -123,13 +124,13 @@
       "review_comments_url_body": [
           {
               "url": "https://api.github.com/repos/jax-ml/jax/pulls/comments/1928997995",
-              "pull_request_review_id": 2573182443,  #ID of the review this comment belongs to.
+              "pull_request_review_id":
               "id": 1928997995,
-              "node_id": "PRRC_kwDOCTkjjc5y-ixr",  #Unique identifier for this comment in GitHub’s GraphQL system.
-              "diff_hunk": "",  # The code snippet where the comment was made
-              "path": "docs/notebooks/thinking_in_jax.ipynb",  #The file where the comment was made
-              "commit_id": "a54ac29ffabb7bcce9ddab15059a649e4dc23e8b",  #The commit this comment is attached to.
-              "original_commit_id": "a54ac29ffabb7bcce9ddab15059a649e4dc23e8b",  #The original commit where this comment was first made (remains unchanged even if the file updates).
+              "node_id": "PRRC_kwDOCTkjjc5y-ixr",
+              "diff_hunk": "",
+              "path": "docs/notebooks/thinking_in_jax.ipynb",
+              "commit_id": "a54ac29ffabb7bcce9ddab15059a649e4dc23e8b",
+              "original_commit_id": "a54ac29ffabb7bcce9ddab15059a649e4dc23e8b",
               "user": {
                   "login": "jakevdp",
                   "id": 781659,
@@ -151,16 +152,17 @@
                   "rocket": 0,
                   "eyes": 0
               },
-              "start_line": None,   # The first line of a multi-line comment (null if single-line).
-              "original_start_line": None,  # The original first line of the comment before any file changes.
-              "start_side": None,  # Which side of the diff the start line is on (LEFT or RIGHT).
-              "line": 1,  # The line number in the current commit where the comment is placed.
-              "original_line": 1,  # The line number in the original commit before any file changes.
-              "side": "RIGHT", # Specifies which side of the diff the comment is on
-              "original_position": 1, # The original position of the comment in the diff.
-              "position": 1, #  The position of the comment in the current diff.
-              "subject_type": "file" #  Type of comment target (e.g., file, line, commit).
+              "start_line": None,
+              "original_start_line": None,
+              "start_side": None,
+              "line": 1,
+              "original_line": 1,
+              "side": "RIGHT",
+              "original_position": 1,
+              "position": 1,
+              "subject_type": "file"
           }
+
       ]
     }
   }
