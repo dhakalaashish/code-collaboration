@@ -3,8 +3,8 @@ import json
 import time
 import requests
 from dotenv import load_dotenv
-from utils.link_extractor import extract_all_links
-from utils.repos import repos
+from link_extractor import extract_all_links
+from repos import repos
 
 # Load environment variables
 load_dotenv()
@@ -83,6 +83,7 @@ def fetch_issues(repo, headers):
                 if links:
                     issue['links_to'] = links
             all_issues.extend(data)
+            print(f"{repo} Page {params["page"]} Done")
             params["page"] += 1
         except requests.exceptions.RequestException as e:
             print(f"Error fetching issues for {repo}: {e}")
