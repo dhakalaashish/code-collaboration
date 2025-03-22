@@ -4,9 +4,9 @@ repos = [
     # "kubernetes/kubernetes",
     # "elastic/kibana",
     # "DefinitelyTyped/DefinitelyTyped",
-    "rust-lang/rust",
-    "odoo/odoo",
-    "swiftlang/swift",
-    "ansible/ansible",
-    "Homebrew/homebrew-cask",
+    "rust-lang/rust"
+    # "odoo/odoo",
+    # "swiftlang/swift",
+    # "ansible/ansible",
+    # "Homebrew/homebrew-cask",
 ]
