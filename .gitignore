@@ -1,2 +1,5 @@
 .env
 scraped_data
+scraped_issues
+checkpoint.json
+__pycache__
