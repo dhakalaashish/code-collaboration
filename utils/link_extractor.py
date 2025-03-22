@@ -6,7 +6,7 @@ def extract_links_from_text(string_list):
     Function to extract instances of URLs or issue/PR numbers from a list of strings
     """
     url_pattern = r'https?://\S+'
-    issue_references_pattern = r'(?:fixes|mentioned in|resolves|closes) #?(\d+)'
+    issue_references_pattern = r'(?:fixes|mentioned in|resolves|closes)[\s#]*(\d+)'
     
     urls, issue_references = [], []
     for string in string_list:
@@ -15,6 +15,7 @@ def extract_links_from_text(string_list):
     
     links_to = []
     for url in urls:
+        url = url.rstrip('.,!?')  # Remove trailing punctuation
         type = 'url'
         if 'pull' in url:
             type = 'pull_url'
@@ -38,21 +39,19 @@ def extract_all_links(issue, is_pr):
         strings.append(issue['body'])
 
     # add comments
-    if 'comments_url_body' in issue:
-        comments = [comment['body'] for comment in issue['comments_url_body'] if comment.get('body')]
+    if issue.get('comments_url_body'):
+        comments = [comment.get('body') for comment in issue.get('comments_url_body', []) if comment.get('body')]
         strings.extend(comments)
     
-    # add review comments, commit messages if PR 
-    if is_pr:
-        if 'pull_request_url_body' in issue:
-            if 'review_comments_url_body' in issue['pull_request_url_body']:
-                review_comments = [comment['body'] for comment in issue['pull_request_url_body']['review_comments_url_body'] if comment.get('body')]
-                strings.extend(review_comments)
+    # add review comments and commit messages if PR
+    if is_pr and issue.get('pull_request_url_body'):
+        pr_data = issue['pull_request_url_body']
+        
+        if pr_data.get('review_comments_url_body'):
+            review_comments = [comment.get('body') for comment in pr_data.get('review_comments_url_body', []) if comment.get('body')]
+            strings.extend(review_comments)
 
-            if 'commit_message' in issue['pull_request_url_body'] and issue['pull_request_url_body']['commit_message']:
-                strings.append(issue['pull_request_url_body']['commit_message'])
+        if pr_data.get('commit_message'):
+            strings.append(pr_data['commit_message'])
     
-    if len(strings) > 0:
-        return extract_links_from_text(strings)
-    else:
-        return []
+    return extract_links_from_text(strings) if strings else []
