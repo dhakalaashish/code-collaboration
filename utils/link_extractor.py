@@ -6,7 +6,7 @@ def extract_links_from_text(string_list):
     Function to extract instances of URLs or issue/PR numbers from a list of strings
     """
     url_pattern = r'https?://\S+'
-    issue_references_pattern = r'(?:fixes|mentioned in|resolves|closes) #?(\d+)'
+    issue_references_pattern = r'(?:fixes|mentioned in|resolves|closes)[\s#]*(\d+)'
     
     urls, issue_references = [], []
     for string in string_list:
@@ -15,6 +15,7 @@ def extract_links_from_text(string_list):
     
     links_to = []
     for url in urls:
+        url = url.rstrip('.,!?')  # Remove trailing punctuation
         type = 'url'
         if 'pull' in url:
             type = 'pull_url'
@@ -30,30 +31,27 @@ def extract_links_from_text(string_list):
 
 def extract_all_links(issue, is_pr):
     """
-    Extracts all links in a given issue/PR and returns a dictionary of links and their types.
+    extracts all links in a given issue/PR and returns a dictionary of links anf their types
     """
     strings = []
-    
-    # Add issue body
+    # add issue body
     if issue.get('body'):
         strings.append(issue['body'])
 
-    # Add comments
-    if 'comments_url_body' in issue:
-        comments = [comment['body'] for comment in issue['comments_url_body'] if comment.get('body')]
+    # add comments
+    if issue.get('comments_url_body'):
+        comments = [comment.get('body') for comment in issue.get('comments_url_body', []) if comment.get('body')]
         strings.extend(comments)
     
-    # Add review comments, commit messages if PR 
-    if is_pr and 'pull_request_url_body' in issue:
-        pr_body = issue['pull_request_url_body']
+    # add review comments and commit messages if PR
+    if is_pr and issue.get('pull_request_url_body'):
+        pr_data = issue['pull_request_url_body']
+        
+        if pr_data.get('review_comments_url_body'):
+            review_comments = [comment.get('body') for comment in pr_data.get('review_comments_url_body', []) if comment.get('body')]
+            strings.extend(review_comments)
 
-        # Safely extract review comments
-        review_comments = [comment['body'] for comment in pr_body.get('review_comments_url_body', []) if comment.get('body')]
-        strings.extend(review_comments)
-
-        # Add commit message
-        commit_message = pr_body.get('commit_message')
-        if commit_message:
-            strings.append(commit_message)
+        if pr_data.get('commit_message'):
+            strings.append(pr_data['commit_message'])
     
     return extract_links_from_text(strings) if strings else []
