@@ -30,29 +30,30 @@ def extract_links_from_text(string_list):
 
 def extract_all_links(issue, is_pr):
     """
-    extracts all links in a given issue/PR and returns a dictionary of links anf their types
+    Extracts all links in a given issue/PR and returns a dictionary of links and their types.
     """
     strings = []
-    # add issue body
+    
+    # Add issue body
     if issue.get('body'):
         strings.append(issue['body'])
 
-    # add comments
+    # Add comments
     if 'comments_url_body' in issue:
         comments = [comment['body'] for comment in issue['comments_url_body'] if comment.get('body')]
         strings.extend(comments)
     
-    # add review comments, commit messages if PR 
-    if is_pr:
-        if 'pull_request_url_body' in issue:
-            if 'review_comments_url_body' in issue['pull_request_url_body']:
-                review_comments = [comment['body'] for comment in issue['pull_request_url_body']['review_comments_url_body'] if comment.get('body')]
-                strings.extend(review_comments)
+    # Add review comments, commit messages if PR 
+    if is_pr and 'pull_request_url_body' in issue:
+        pr_body = issue['pull_request_url_body']
 
-            if 'commit_message' in issue['pull_request_url_body'] and issue['pull_request_url_body']['commit_message']:
-                strings.append(issue['pull_request_url_body']['commit_message'])
+        # Safely extract review comments
+        review_comments = [comment['body'] for comment in pr_body.get('review_comments_url_body', []) if comment.get('body')]
+        strings.extend(review_comments)
+
+        # Add commit message
+        commit_message = pr_body.get('commit_message')
+        if commit_message:
+            strings.append(commit_message)
     
-    if len(strings) > 0:
-        return extract_links_from_text(strings)
-    else:
-        return []
+    return extract_links_from_text(strings) if strings else []
