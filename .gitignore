@@ -1,5 +1,8 @@
 .env
 scraped_data
 scraped_issues
+summaries_unmerged_commented_pr_only
+summary_with_predicted_reason
+ai_accuracy
 checkpoint.json
 __pycache__

@@ -4,6 +4,7 @@ import csv
 from dotenv import load_dotenv
 import google.generativeai as genai
 from time import sleep
+from repos import repos  
 
 # Load environment variables
 load_dotenv()
@@ -50,7 +51,7 @@ def json_to_summary(data):
     if data['body']:
         summary += f"It has a body of '{data['body']}'\n"
 
-    if data['comments_url_body']:
+    if 'comments_url_body' in data and data['comments_url_body']:
         comments = data['comments_url_body']
         num_comments = len(comments)
         summary += f"PR has comments:\n"
@@ -70,8 +71,10 @@ def json_to_summary(data):
             review_comments = data['pull_request_url_body']['review_comments_url_body']
             num_review_comments = len(review_comments)
             summary += f"PR has review comments:\n"
-            for i in range(num_review_comments):
-                summary += f"'{review_comments[i]['body']}' by a {review_comments[i]['author_association']} of type {review_comments[i]['user']['type']} on {review_comments[i]['created_at']}\n"
+            for review in review_comments:
+                if review and 'user' in review and review['user']:  # Ensure review and user exist
+                    user_type = review['user'].get('type', 'Unknown')
+                    summary += f"'{review.get('body', 'No body available')}' by a {review.get('author_association', 'Unknown')} of type {user_type} on {review.get('created_at', 'Unknown date')}\n"
             summary += '\n'
             
     return summary.strip(), has_locked_reason, merged, num_comments, num_review_comments
@@ -112,69 +115,78 @@ def call_gemini(prompts):
     return results
 
 def main():
-    # input_file = os.path.join(os.path.dirname(__file__), "../example_data/cleaned_extended_issue.json")
-    input_file = os.path.join(os.path.dirname(__file__), "../scraped_data/jax-ml_jax.json")
-    output_json = os.path.join(os.path.dirname(__file__), "pr_closure_reasons.json")
-    output_json_just_reasons = os.path.join(os.path.dirname(__file__), "pr_closure_just_reasons.json")
+    for repo in repos:
+        print(f"Started creating summary for {repo}")
+        repo_path = repo.replace("/", "_")
+        input_file = os.path.join(os.path.dirname(__file__), f"../scraped_data/{repo_path}.json")
+        output_dir = os.path.join(os.path.dirname(__file__), "../reasons")
+        output_json = os.path.join(output_dir, f"{repo_path}.json")
 
-    if not os.path.exists(input_file):
-        print(f"Error: File '{input_file}' not found.")
-        return
+        # Ensure the output directory exists
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
-    data = load_json(input_file)
-    total = 0
-    count = 0
-    if isinstance(data, list):  # If JSON is a list of PRs, process each one
-        summary_data = []
-        for entry in data:
-            total += 1
-            num_comments = len(entry['comments_url_body'])
-            if 'pull_request' in entry and entry['pull_request']:
-                num_review_comments = len(entry['pull_request_url_body']['review_comments_url_body'])
-                pull_request = entry['pull_request']
-                if not pull_request.get('merged_at') and num_comments > 0 and num_review_comments > 0:
-                    count += 1
-                    summary_data.append(json_to_summary(entry))
+        if not os.path.exists(input_file):
+            print(f"Error: File '{input_file}' not found.")
+            return
 
-    else:  # If JSON contains only a single PR, process it directly
-        if 'pull_request' in data and data['pull_request'] and not data['pull_request'].get('merged_at'):
-            summary_data = [json_to_summary(data)]
+        data = load_json(input_file)
+        total = 0
+        count = 0
+        if isinstance(data, list):  # If JSON is a list of PRs, process each one
+            summary_data = []
+            for entry in data:
+                total += 1
+                num_comments = len(entry.get('comments_url_body', []))
+                if 'pull_request' in entry and entry['pull_request']:
+                    pull_request_data = entry.get('pull_request_url_body', {})
+                    review_comments = pull_request_data.get('review_comments_url_body', [])
+
+                    # Ensure review_comments is a list before calling len()
+                    if review_comments is None:
+                        num_review_comments = 0
+                    else:
+                        num_review_comments = len(review_comments)
+
+                    pull_request = entry['pull_request']
+                    if not pull_request.get('merged_at') and num_comments > 0 and num_review_comments > 0:
+                        count += 1
+                        summary_data.append(json_to_summary(entry))
+
+        else:  # If JSON contains only a single PR, process it directly
+            if 'pull_request' in data and data['pull_request'] and not data['pull_request'].get('merged_at'):
+                summary_data = [json_to_summary(data)]
+            else:
+                summary_data = []  # or handle the case where no matching PR is found
+        if summary_data:
+            summarys, has_locked_reasons_list, is_merged_list, num_comments_list, num_review_comments_list = zip(*summary_data)
         else:
-            summary_data = []  # or handle the case where no matching PR is found
+            print(f"No unmerged PRs with comments for {repo}. Omitting this repo")
+            continue
 
-    summarys, has_locked_reasons_list, is_merged_list, num_comments_list, num_review_comments_list = zip(*summary_data)
+        print(f"Generating reasons for: {count} out of {total}")
 
-    print(f"Generating reasons for: {count} out of {total}")
+        prompts = [generate_prompt(summary) for summary in summarys]
 
-    prompts = [generate_prompt(summary) for summary in summarys]
-
-    print("Sending requests to Gemini API...")
-    reasons = call_gemini(prompts)
-    
-    # Prepare the result data in a JSON-compatible format
-    results = [
-        {
-            "summary": summary,
-            "has_locked_reason": has_locked_reason,
-            "merged": merged,
-            "num_comments": num_comments,
-            "num_review_comments": num_review_comments,
-            "reason_for_closure": reasons
-        }
-        for summary, has_locked_reason, merged, num_comments, num_review_comments, reasons in zip(summarys, has_locked_reasons_list, is_merged_list, num_comments_list, num_review_comments_list, reasons)
-    ]
+        print("Sending requests to Gemini API...")
+        reasons = call_gemini(prompts)
+        
+        # Prepare the result data in a JSON-compatible format
+        results = [
+            {
+                "summary": summary,
+                "hasLockedReason_merged_numComments_numReviewComments": [has_locked_reason, merged, num_comments, num_review_comments],
+                "predicted_reason": reason
+            }
+            for summary, has_locked_reason, merged, num_comments, num_review_comments, reason in zip(summarys, has_locked_reasons_list, is_merged_list, num_comments_list, num_review_comments_list, reasons)
+        ]
 
 
-    # Save results to JSON
-    with open(output_json, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=4)
+        # Save results to JSON
+        with open(output_json, "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=4)
 
-    print(f"Results saved to {output_json}")
-
-    with open(output_json_just_reasons, "w", encoding="utf-8") as f:
-        json.dump(reasons, f, ensure_ascii=False, indent=4)
-
-    print(f"Results saved to {output_json_just_reasons}")
+        print(f"Results saved to {output_json}")
 
 if __name__ == "__main__":
     main()

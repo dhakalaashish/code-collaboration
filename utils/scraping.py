@@ -104,6 +104,7 @@ def fetch_issues(repo, headers):
             print(f"{repo} Page {params['page']} Done")
 
             # Save page immediately after processing
+            print(f"{repo}, page: {params["page"]}")
             save_page_issues(repo, data, params["page"]) 
             save_checkpoint(repo, params["page"] + 1)
 
