@@ -1,13 +1,6 @@
 import os
 import json
-# from repos import repos  # Import repo list from the original script
-repos = [
-    "rust-lang/rust",
-    "odoo/odoo",
-    "swiftlang/swift",
-    "ansible/ansible",
-    "Homebrew/homebrew-cask",
-]
+from repos import repos  # Import repo list from the original script
 
 def merge_json_files(repo):
     """Merge all JSON pages for a given repository."""

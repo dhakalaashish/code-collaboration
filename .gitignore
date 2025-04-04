@@ -6,3 +6,4 @@ summary_with_predicted_reason
 ai_accuracy
 checkpoint.json
 __pycache__
+ai_generated_15_reasons
